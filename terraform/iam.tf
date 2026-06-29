@@ -1,41 +1,35 @@
-data "aws_iam_policy_document" "apprunner_ecr_access_assume" {
+data "aws_iam_policy_document" "ec2_assume" {
   statement {
     actions = ["sts:AssumeRole"]
 
     principals {
       type        = "Service"
-      identifiers = ["build.apprunner.amazonaws.com"]
+      identifiers = ["ec2.amazonaws.com"]
     }
   }
 }
 
-resource "aws_iam_role" "apprunner_ecr_access" {
-  name               = "${local.name_prefix}-apprunner-ecr"
-  assume_role_policy = data.aws_iam_policy_document.apprunner_ecr_access_assume.json
+resource "aws_iam_role" "ec2" {
+  name               = "${local.name_prefix}-ec2"
+  assume_role_policy = data.aws_iam_policy_document.ec2_assume.json
 }
 
-resource "aws_iam_role_policy_attachment" "apprunner_ecr_access" {
-  role       = aws_iam_role.apprunner_ecr_access.name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSAppRunnerServicePolicyForECRAccess"
+resource "aws_iam_instance_profile" "ec2" {
+  name = "${local.name_prefix}-ec2"
+  role = aws_iam_role.ec2.name
 }
 
-data "aws_iam_policy_document" "apprunner_instance_assume" {
-  statement {
-    actions = ["sts:AssumeRole"]
-
-    principals {
-      type        = "Service"
-      identifiers = ["tasks.apprunner.amazonaws.com"]
-    }
-  }
+resource "aws_iam_role_policy_attachment" "ec2_ssm" {
+  role       = aws_iam_role.ec2.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
 }
 
-resource "aws_iam_role" "apprunner_instance" {
-  name               = "${local.name_prefix}-apprunner-instance"
-  assume_role_policy = data.aws_iam_policy_document.apprunner_instance_assume.json
+resource "aws_iam_role_policy_attachment" "ec2_ecr_read" {
+  role       = aws_iam_role.ec2.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
 }
 
-data "aws_iam_policy_document" "apprunner_instance" {
+data "aws_iam_policy_document" "ec2_app" {
   statement {
     sid = "S3ReportStorage"
     actions = [
@@ -61,10 +55,10 @@ data "aws_iam_policy_document" "apprunner_instance" {
   }
 }
 
-resource "aws_iam_role_policy" "apprunner_instance" {
-  name   = "${local.name_prefix}-apprunner-instance"
-  role   = aws_iam_role.apprunner_instance.id
-  policy = data.aws_iam_policy_document.apprunner_instance.json
+resource "aws_iam_role_policy" "ec2_app" {
+  name   = "${local.name_prefix}-ec2-app"
+  role   = aws_iam_role.ec2.id
+  policy = data.aws_iam_policy_document.ec2_app.json
 }
 
 resource "aws_iam_openid_connect_provider" "github" {
@@ -134,8 +128,7 @@ resource "aws_iam_role_policy" "github_iam_pass" {
         Effect = "Allow"
         Action = ["iam:PassRole"]
         Resource = [
-          aws_iam_role.apprunner_ecr_access.arn,
-          aws_iam_role.apprunner_instance.arn
+          aws_iam_role.ec2.arn
         ]
       },
       {
@@ -145,6 +138,15 @@ resource "aws_iam_role_policy" "github_iam_pass" {
           "iam:DeleteRole",
           "iam:GetRole",
           "iam:GetRolePolicy",
+          "iam:CreateInstanceProfile",
+          "iam:DeleteInstanceProfile",
+          "iam:GetInstanceProfile",
+          "iam:ListInstanceProfiles",
+          "iam:ListInstanceProfilesForRole",
+          "iam:AddRoleToInstanceProfile",
+          "iam:RemoveRoleFromInstanceProfile",
+          "iam:TagInstanceProfile",
+          "iam:UntagInstanceProfile",
           "iam:PassRole",
           "iam:PutRolePolicy",
           "iam:DeleteRolePolicy",

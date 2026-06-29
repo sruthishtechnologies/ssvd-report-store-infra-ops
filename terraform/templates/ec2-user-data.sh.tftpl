@@ -1,0 +1,15 @@
+#!/bin/bash
+set -euxo pipefail
+
+dnf update -y
+dnf install -y docker amazon-ssm-agent awscli
+
+systemctl enable docker
+systemctl start docker
+
+systemctl enable amazon-ssm-agent
+systemctl start amazon-ssm-agent
+
+cat >/etc/ssvd-report-store.env <<ENV
+AWS_REGION=${aws_region}
+ENV

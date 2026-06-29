@@ -2,8 +2,9 @@ aws_region   = "ap-south-1"
 project_name = "ssvd-report-store"
 environment  = "prod"
 
-apprunner_cpu    = "0.25 vCPU"
-apprunner_memory = "0.5 GB"
+ec2_instance_type    = "t3.small"
+ec2_root_volume_size = 30
+allowed_http_cidrs   = ["0.0.0.0/0"]
 
 s3_prefix = "ssvd-report-store/prod"
 
