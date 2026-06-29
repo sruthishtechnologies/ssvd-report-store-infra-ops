@@ -1,10 +1,9 @@
-aws_region   = "ap-south-2"
+aws_region   = "ap-south-1"
 project_name = "ssvd-report-store"
 environment  = "prod"
 
-desired_count = 1
-cpu           = 512
-memory        = 1024
+apprunner_cpu    = "0.25 vCPU"
+apprunner_memory = "0.5 GB"
 
 s3_prefix = "ssvd-report-store/prod"
 

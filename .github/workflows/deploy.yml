@@ -1,4 +1,4 @@
-name: Deploy AWS Fargate
+name: Deploy AWS App Runner
 
 on:
   push:
@@ -9,21 +9,21 @@ on:
       app_ref:
         description: "App repo branch/tag/SHA to deploy"
         required: false
-        default: "aws_fargate"
+        default: "aws_apprunner"
 
 permissions:
   contents: read
   id-token: write
 
 env:
-  AWS_REGION: ap-south-2
+  AWS_REGION: ap-south-1
   APP_REPOSITORY: sruthishtechnologies/ssvd-report-store
-  APP_REF: ${{ inputs.app_ref || 'aws_fargate' }}
+  APP_REF: ${{ inputs.app_ref || 'aws_apprunner' }}
   TF_WORKING_DIR: terraform
 
 jobs:
   deploy:
-    name: Build image and deploy Fargate
+    name: Build image and deploy App Runner
     runs-on: ubuntu-latest
 
     steps:
@@ -70,7 +70,7 @@ jobs:
         run: |
           terraform apply -auto-approve \
             -var-file=prod.tfvars \
-            -var="enable_ecs_service=false" \
+            -var="create_apprunner_service=false" \
             -var="image_tag=${{ github.sha }}"
 
       - name: Read ECR output
@@ -106,12 +106,12 @@ jobs:
           docker push "${{ steps.tfout.outputs.ecr_repository_url }}:${{ github.sha }}"
           docker push "${{ steps.tfout.outputs.ecr_repository_url }}:latest"
 
-      - name: Apply ECS service
+      - name: Apply App Runner service
         working-directory: ${{ env.TF_WORKING_DIR }}
         run: |
           terraform apply -auto-approve \
             -var-file=prod.tfvars \
-            -var="enable_ecs_service=true" \
+            -var="create_apprunner_service=true" \
             -var="image_tag=${{ github.sha }}"
 
       - name: Deployment output

@@ -1,30 +1,41 @@
-data "aws_iam_policy_document" "ecs_task_assume" {
+data "aws_iam_policy_document" "apprunner_ecr_access_assume" {
   statement {
     actions = ["sts:AssumeRole"]
 
     principals {
       type        = "Service"
-      identifiers = ["ecs-tasks.amazonaws.com"]
+      identifiers = ["build.apprunner.amazonaws.com"]
     }
   }
 }
 
-resource "aws_iam_role" "execution" {
-  name               = "${local.name_prefix}-execution"
-  assume_role_policy = data.aws_iam_policy_document.ecs_task_assume.json
+resource "aws_iam_role" "apprunner_ecr_access" {
+  name               = "${local.name_prefix}-apprunner-ecr"
+  assume_role_policy = data.aws_iam_policy_document.apprunner_ecr_access_assume.json
 }
 
-resource "aws_iam_role_policy_attachment" "execution" {
-  role       = aws_iam_role.execution.name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+resource "aws_iam_role_policy_attachment" "apprunner_ecr_access" {
+  role       = aws_iam_role.apprunner_ecr_access.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSAppRunnerServicePolicyForECRAccess"
 }
 
-resource "aws_iam_role" "task" {
-  name               = "${local.name_prefix}-task"
-  assume_role_policy = data.aws_iam_policy_document.ecs_task_assume.json
+data "aws_iam_policy_document" "apprunner_instance_assume" {
+  statement {
+    actions = ["sts:AssumeRole"]
+
+    principals {
+      type        = "Service"
+      identifiers = ["tasks.apprunner.amazonaws.com"]
+    }
+  }
 }
 
-data "aws_iam_policy_document" "task" {
+resource "aws_iam_role" "apprunner_instance" {
+  name               = "${local.name_prefix}-apprunner-instance"
+  assume_role_policy = data.aws_iam_policy_document.apprunner_instance_assume.json
+}
+
+data "aws_iam_policy_document" "apprunner_instance" {
   statement {
     sid = "S3ReportStorage"
     actions = [
@@ -50,10 +61,10 @@ data "aws_iam_policy_document" "task" {
   }
 }
 
-resource "aws_iam_role_policy" "task" {
-  name   = "${local.name_prefix}-task"
-  role   = aws_iam_role.task.id
-  policy = data.aws_iam_policy_document.task.json
+resource "aws_iam_role_policy" "apprunner_instance" {
+  name   = "${local.name_prefix}-apprunner-instance"
+  role   = aws_iam_role.apprunner_instance.id
+  policy = data.aws_iam_policy_document.apprunner_instance.json
 }
 
 resource "aws_iam_openid_connect_provider" "github" {
@@ -123,8 +134,8 @@ resource "aws_iam_role_policy" "github_iam_pass" {
         Effect = "Allow"
         Action = ["iam:PassRole"]
         Resource = [
-          aws_iam_role.execution.arn,
-          aws_iam_role.task.arn
+          aws_iam_role.apprunner_ecr_access.arn,
+          aws_iam_role.apprunner_instance.arn
         ]
       },
       {
@@ -133,6 +144,7 @@ resource "aws_iam_role_policy" "github_iam_pass" {
           "iam:CreateRole",
           "iam:DeleteRole",
           "iam:GetRole",
+          "iam:PassRole",
           "iam:PutRolePolicy",
           "iam:DeleteRolePolicy",
           "iam:AttachRolePolicy",
