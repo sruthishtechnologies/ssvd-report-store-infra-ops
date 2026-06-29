@@ -1,5 +1,5 @@
 variable "aws_region" {
-  description = "AWS region. App Runner is available in Mumbai (ap-south-1); Hyderabad (ap-south-2) is not currently listed in AWS endpoint data."
+  description = "AWS region for the low-cost EC2 deployment."
   type        = string
   default     = "ap-south-1"
 }
@@ -23,27 +23,27 @@ variable "container_port" {
 }
 
 variable "image_tag" {
-  description = "Docker image tag deployed to App Runner."
+  description = "Docker image tag deployed to EC2."
   type        = string
   default     = "latest"
 }
 
-variable "create_apprunner_service" {
-  description = "Set false for first apply to create ECR before image build."
-  type        = bool
-  default     = true
+variable "ec2_instance_type" {
+  description = "Low-cost EC2 instance type for the app host."
+  type        = string
+  default     = "t3.small"
 }
 
-variable "apprunner_cpu" {
-  description = "App Runner vCPU size."
-  type        = string
-  default     = "0.25 vCPU"
+variable "ec2_root_volume_size" {
+  description = "EC2 root volume size in GiB."
+  type        = number
+  default     = 30
 }
 
-variable "apprunner_memory" {
-  description = "App Runner memory size."
-  type        = string
-  default     = "0.5 GB"
+variable "allowed_http_cidrs" {
+  description = "CIDR blocks allowed to access the app over HTTP."
+  type        = list(string)
+  default     = ["0.0.0.0/0"]
 }
 
 variable "s3_prefix" {

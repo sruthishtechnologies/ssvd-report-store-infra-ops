@@ -18,20 +18,20 @@ output "secrets_manager_secret_arn" {
   value = aws_secretsmanager_secret.app.arn
 }
 
-output "apprunner_service_name" {
-  value = var.create_apprunner_service ? aws_apprunner_service.app[0].service_name : ""
+output "ec2_instance_id" {
+  value = aws_instance.app.id
 }
 
-output "apprunner_service_arn" {
-  value = var.create_apprunner_service ? aws_apprunner_service.app[0].arn : ""
+output "ec2_public_ip" {
+  value = aws_eip.app.public_ip
 }
 
-output "apprunner_service_url" {
-  value = var.create_apprunner_service ? "https://${aws_apprunner_service.app[0].service_url}" : ""
+output "ec2_elastic_ip_allocation_id" {
+  value = aws_eip.app.allocation_id
 }
 
 output "app_url" {
-  value = var.create_apprunner_service ? "https://${aws_apprunner_service.app[0].service_url}" : ""
+  value = "http://${aws_eip.app.public_ip}"
 }
 
 output "github_actions_role_arn" {
