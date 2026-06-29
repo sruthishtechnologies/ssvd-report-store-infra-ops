@@ -21,6 +21,7 @@ permissions:
 env:
   AWS_REGION: ap-south-1
   AWS_GITHUB_ACTIONS_ROLE_ARN: ${{ secrets.AWS_GITHUB_ACTIONS_ROLE_ARN }}
+  DEPLOY_CONTAINER_INPUT: ${{ github.event.inputs.deploy_container || 'false' }}
   TF_WORKING_DIR: terraform
 
 jobs:
@@ -80,9 +81,14 @@ jobs:
           echo "instance_id=$(terraform output -raw ec2_instance_id)" >> "$GITHUB_OUTPUT"
           echo "ecr_repository_url=$(terraform output -raw ecr_repository_url)" >> "$GITHUB_OUTPUT"
           echo "app_url=$(terraform output -raw app_url)" >> "$GITHUB_OUTPUT"
+          if [ "${DEPLOY_CONTAINER_INPUT}" = "true" ] || { [ "${GITHUB_EVENT_NAME}" = "push" ] && [ "${IMAGE_TAG}" != "latest" ]; }; then
+            echo "should_deploy=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "should_deploy=false" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Wait for EC2 SSM readiness
-        if: ${{ inputs.deploy_container == 'true' || (github.event_name == 'push' && steps.deploy.outputs.image_tag != 'latest') }}
+        if: ${{ steps.deploy.outputs.should_deploy == 'true' }}
         run: |
           for attempt in {1..30}; do
             STATUS="$(aws ssm describe-instance-information \
@@ -99,7 +105,7 @@ jobs:
           exit 1
 
       - name: Deploy container over SSM
-        if: ${{ inputs.deploy_container == 'true' || (github.event_name == 'push' && steps.deploy.outputs.image_tag != 'latest') }}
+        if: ${{ steps.deploy.outputs.should_deploy == 'true' }}
         run: |
           IMAGE="${{ steps.deploy.outputs.ecr_repository_url }}:${{ steps.deploy.outputs.image_tag }}"
           REGISTRY="${{ steps.deploy.outputs.ecr_repository_url }}"
