@@ -11,3 +11,6 @@ s3_prefix = "ssvd-report-store/prod"
 github_owner      = "sruthishtechnologies"
 github_infra_repo = "ssvd-report-store-infra-ops"
 github_app_repo   = "ssvd-report-store"
+github_extra_oidc_repos = [
+  "st-ob-datadog"
+]

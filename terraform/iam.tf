@@ -93,10 +93,10 @@ data "aws_iam_policy_document" "github_assume" {
     condition {
       test     = "StringLike"
       variable = "token.actions.githubusercontent.com:sub"
-      values = [
+      values = concat([
         "repo:${var.github_owner}/${var.github_infra_repo}:*",
         "repo:${var.github_owner}/${var.github_app_repo}:*"
-      ]
+      ], [for repo in var.github_extra_oidc_repos : "repo:${var.github_owner}/${repo}:*"])
     }
   }
 }

@@ -89,6 +89,12 @@ variable "github_app_repo" {
   default     = "ssvd-report-store"
 }
 
+variable "github_extra_oidc_repos" {
+  description = "Additional GitHub repos allowed to assume the shared Actions role."
+  type        = list(string)
+  default     = []
+}
+
 variable "create_github_oidc_role" {
   description = "Create IAM OIDC role for GitHub Actions."
   type        = bool
