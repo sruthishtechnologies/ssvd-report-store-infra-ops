@@ -144,6 +144,7 @@ resource "aws_iam_role_policy" "github_iam_pass" {
           "iam:CreateRole",
           "iam:DeleteRole",
           "iam:GetRole",
+          "iam:GetRolePolicy",
           "iam:PassRole",
           "iam:PutRolePolicy",
           "iam:DeleteRolePolicy",
