@@ -1,7 +1,7 @@
 variable "aws_region" {
-  description = "AWS region. Hyderabad is ap-south-2."
+  description = "AWS region. App Runner is available in Mumbai (ap-south-1); Hyderabad (ap-south-2) is not currently listed in AWS endpoint data."
   type        = string
-  default     = "ap-south-2"
+  default     = "ap-south-1"
 }
 
 variable "project_name" {
@@ -22,34 +22,28 @@ variable "container_port" {
   default     = 3000
 }
 
-variable "desired_count" {
-  description = "Number of Fargate tasks."
-  type        = number
-  default     = 1
-}
-
-variable "cpu" {
-  description = "Fargate task CPU units."
-  type        = number
-  default     = 512
-}
-
-variable "memory" {
-  description = "Fargate task memory in MiB."
-  type        = number
-  default     = 1024
-}
-
 variable "image_tag" {
-  description = "Docker image tag deployed to ECS."
+  description = "Docker image tag deployed to App Runner."
   type        = string
   default     = "latest"
 }
 
-variable "enable_ecs_service" {
+variable "create_apprunner_service" {
   description = "Set false for first apply to create ECR before image build."
   type        = bool
   default     = true
+}
+
+variable "apprunner_cpu" {
+  description = "App Runner vCPU size."
+  type        = string
+  default     = "0.25 vCPU"
+}
+
+variable "apprunner_memory" {
+  description = "App Runner memory size."
+  type        = string
+  default     = "0.5 GB"
 }
 
 variable "s3_prefix" {
@@ -75,12 +69,6 @@ variable "official_https_proxy" {
   type        = string
   default     = ""
   sensitive   = true
-}
-
-variable "certificate_arn" {
-  description = "Optional ACM certificate ARN for HTTPS listener. Leave empty for HTTP-only."
-  type        = string
-  default     = ""
 }
 
 variable "github_owner" {

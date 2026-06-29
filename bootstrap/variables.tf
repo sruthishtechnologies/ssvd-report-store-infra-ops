@@ -1,7 +1,7 @@
 variable "aws_region" {
   description = "AWS region for Terraform state resources."
   type        = string
-  default     = "ap-south-2"
+  default     = "ap-south-1"
 }
 
 variable "state_bucket_name" {

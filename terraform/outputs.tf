@@ -18,20 +18,20 @@ output "secrets_manager_secret_arn" {
   value = aws_secretsmanager_secret.app.arn
 }
 
-output "ecs_cluster_name" {
-  value = aws_ecs_cluster.app.name
+output "apprunner_service_name" {
+  value = var.create_apprunner_service ? aws_apprunner_service.app[0].service_name : ""
 }
 
-output "ecs_service_name" {
-  value = var.enable_ecs_service ? aws_ecs_service.app[0].name : ""
+output "apprunner_service_arn" {
+  value = var.create_apprunner_service ? aws_apprunner_service.app[0].arn : ""
 }
 
-output "alb_dns_name" {
-  value = aws_lb.app.dns_name
+output "apprunner_service_url" {
+  value = var.create_apprunner_service ? "https://${aws_apprunner_service.app[0].service_url}" : ""
 }
 
 output "app_url" {
-  value = "http://${aws_lb.app.dns_name}"
+  value = var.create_apprunner_service ? "https://${aws_apprunner_service.app[0].service_url}" : ""
 }
 
 output "github_actions_role_arn" {
