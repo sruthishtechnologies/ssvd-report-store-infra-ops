@@ -1,0 +1,119 @@
+name: Deploy AWS Fargate
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      app_ref:
+        description: "App repo branch/tag/SHA to deploy"
+        required: false
+        default: "aws_fargate"
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  AWS_REGION: ap-south-2
+  APP_REPOSITORY: sruthishtechnologies/ssvd-report-store
+  APP_REF: ${{ inputs.app_ref || 'aws_fargate' }}
+  TF_WORKING_DIR: terraform
+
+jobs:
+  deploy:
+    name: Build image and deploy Fargate
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout infra repo
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials with OIDC
+        if: ${{ secrets.AWS_GITHUB_ACTIONS_ROLE_ARN != '' }}
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_GITHUB_ACTIONS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Configure AWS credentials with access keys
+        if: ${{ secrets.AWS_GITHUB_ACTIONS_ROLE_ARN == '' }}
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.8
+          terraform_wrapper: false
+
+      - name: Terraform init
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: |
+          terraform init \
+            -backend-config="bucket=${{ secrets.TF_STATE_BUCKET }}" \
+            -backend-config="key=ssvd-report-store/prod/terraform.tfstate" \
+            -backend-config="region=${{ env.AWS_REGION }}" \
+            -backend-config="dynamodb_table=${{ secrets.TF_STATE_LOCK_TABLE }}" \
+            -backend-config="encrypt=true"
+
+      - name: Terraform validate
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: terraform validate
+
+      - name: Apply foundation resources
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: |
+          terraform apply -auto-approve \
+            -var-file=prod.tfvars \
+            -var="enable_ecs_service=false" \
+            -var="image_tag=${{ github.sha }}"
+
+      - name: Read ECR output
+        id: tfout
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: |
+          echo "ecr_repository_url=$(terraform output -raw ecr_repository_url)" >> "$GITHUB_OUTPUT"
+
+      - name: Login to ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Checkout app repo
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.APP_REPOSITORY }}
+          ref: ${{ env.APP_REF }}
+          path: app
+
+      - name: Build app image
+        run: |
+          docker build \
+            -t "${{ steps.tfout.outputs.ecr_repository_url }}:${{ github.sha }}" \
+            -t "${{ steps.tfout.outputs.ecr_repository_url }}:latest" \
+            app
+
+      - name: Validate app image
+        run: |
+          docker run --rm "${{ steps.tfout.outputs.ecr_repository_url }}:${{ github.sha }}" node --check src/server.js
+          docker run --rm "${{ steps.tfout.outputs.ecr_repository_url }}:${{ github.sha }}" node --check src/public/app.js
+
+      - name: Push app image
+        run: |
+          docker push "${{ steps.tfout.outputs.ecr_repository_url }}:${{ github.sha }}"
+          docker push "${{ steps.tfout.outputs.ecr_repository_url }}:latest"
+
+      - name: Apply ECS service
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: |
+          terraform apply -auto-approve \
+            -var-file=prod.tfvars \
+            -var="enable_ecs_service=true" \
+            -var="image_tag=${{ github.sha }}"
+
+      - name: Deployment output
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: terraform output app_url
