@@ -75,14 +75,57 @@ The Terraform stack can create the long-term GitHub OIDC role and outputs `githu
 
 `.github/workflows/deploy.yml`
 
-On push to `main` or manual dispatch:
+On push to `main` when Terraform files change, or manual dispatch:
 
-1. Applies foundation resources with App Runner disabled so ECR exists.
-2. Checks out app repo `sruthishtechnologies/ssvd-report-store`.
-3. Builds Docker image from the app repo.
-4. Validates server JavaScript inside the built image.
-5. Pushes image to ECR with commit SHA and `latest` tags.
-6. Applies Terraform again with App Runner enabled and the new image tag.
+1. Applies foundation resources with App Runner disabled so ECR/storage/IAM exist.
+2. Reads `terraform/image.auto.tfvars` for the desired Docker image tag.
+3. Applies App Runner with that image tag.
+
+For the first deploy, manually run the workflow with:
+
+```text
+deploy_app_runner=false
+```
+
+That creates ECR before any app image exists. After that, pushing app code builds the image and updates `terraform/image.auto.tfvars`.
+
+## App Release Flow
+
+The app repo workflow `.github/workflows/release-image.yml` does the application release:
+
+1. Runs when app code is pushed to `main`.
+2. Builds the Docker image.
+3. Validates `src/server.js` and `src/public/app.js` inside the image.
+4. Pushes tags `<app-commit-sha>` and `latest` to ECR.
+5. Commits this line to the infra repo:
+
+```hcl
+image_tag = "<app-commit-sha>"
+```
+
+6. The infra repo push triggers this deploy workflow and updates App Runner.
+
+Required app repo secrets:
+
+```text
+AWS_GITHUB_ACTIONS_ROLE_ARN=<github actions deploy role arn>
+INFRA_REPO_TOKEN=<classic PAT or fine-grained token with contents:write on infra repo>
+```
+
+If not using OIDC, add these app repo secrets instead of `AWS_GITHUB_ACTIONS_ROLE_ARN`:
+
+```text
+AWS_ACCESS_KEY_ID=<deploy access key>
+AWS_SECRET_ACCESS_KEY=<deploy secret key>
+```
+
+Optional app repo variables:
+
+```text
+AWS_REGION=ap-south-1
+ECR_REPOSITORY=ssvd-report-store-prod
+INFRA_BRANCH=main
+```
 
 ## Required App Branch
 
