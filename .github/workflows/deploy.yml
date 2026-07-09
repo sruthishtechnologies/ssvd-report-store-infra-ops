@@ -87,6 +87,23 @@ jobs:
             echo "should_deploy=false" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Configure runtime app secret values
+        run: |
+          SECRET_ID="$(terraform -chdir=${{ env.TF_WORKING_DIR }} output -raw secrets_manager_secret_arn)"
+          APP_PUBLIC_URL="${{ steps.deploy.outputs.app_url }}"
+          CURRENT_SECRET="$(aws secretsmanager get-secret-value --secret-id "${SECRET_ID}" --query SecretString --output text 2>/dev/null || echo '{}')"
+          if [ -z "${CURRENT_SECRET}" ] || [ "${CURRENT_SECRET}" = "None" ]; then
+            CURRENT_SECRET='{}'
+          fi
+          UPDATED_SECRET="$(jq -c \
+            --arg ses_from_email "sales@srisatvam.com" \
+            --arg app_public_url "${APP_PUBLIC_URL}" \
+            '. + {AWS_SES_FROM_EMAIL: $ses_from_email, APP_PUBLIC_URL: $app_public_url}' \
+            <<<"${CURRENT_SECRET}")"
+          aws secretsmanager put-secret-value \
+            --secret-id "${SECRET_ID}" \
+            --secret-string "${UPDATED_SECRET}"
+
       - name: Wait for EC2 SSM readiness
         if: ${{ steps.deploy.outputs.should_deploy == 'true' }}
         run: |
