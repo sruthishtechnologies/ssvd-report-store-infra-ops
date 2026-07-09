@@ -71,6 +71,12 @@ variable "official_https_proxy" {
   sensitive   = true
 }
 
+variable "ses_from_email" {
+  description = "Verified SES sender email used for scheduled report notifications."
+  type        = string
+  default     = "srisatvamdevelopers@gmail.com"
+}
+
 variable "github_owner" {
   description = "GitHub organization/user."
   type        = string

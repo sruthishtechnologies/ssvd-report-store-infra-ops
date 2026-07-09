@@ -94,6 +94,8 @@ resource "aws_secretsmanager_secret_version" "initial" {
     OPENAI_API_KEY       = ""
     ANTHROPIC_API_KEY    = ""
     OFFICIAL_HTTPS_PROXY = var.official_https_proxy
+    AWS_SES_FROM_EMAIL   = var.ses_from_email
+    APP_PUBLIC_URL       = ""
   })
 
   lifecycle {

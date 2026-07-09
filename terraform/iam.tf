@@ -53,6 +53,15 @@ data "aws_iam_policy_document" "ec2_app" {
     actions   = ["secretsmanager:GetSecretValue"]
     resources = [aws_secretsmanager_secret.app.arn]
   }
+
+  statement {
+    sid = "SendDailyReportEmail"
+    actions = [
+      "ses:SendEmail",
+      "ses:SendRawEmail"
+    ]
+    resources = ["*"]
+  }
 }
 
 resource "aws_iam_role_policy" "ec2_app" {
