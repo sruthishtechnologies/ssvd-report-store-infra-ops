@@ -1,1 +1,1 @@
-image_tag = "ddffd3a2c755e1e636a30a6cf45af07bb45bb321"
+image_tag = "ebccc2863187ecacdc1cdceb41b3ba767b374846"
